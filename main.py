@@ -20,13 +20,23 @@ def resource_path(relative):
 
 def open_from_file():
     global bot, accounts_list
+    session_string = 'BQAYWqi3c2OkiL51OTVDhksaA25Txb4F7csOP_kp-4e18uiPJi7okWoRY2GHcLAoB0WRtZBFuZQWAYm75EAf-Cduzmf09H6cZxEoE85qwY8voqrJLL0cxSMpCC3zvEZPBhIylW2Bmv0v7Wbmyz1OA9AYkgiCZmJbK7-JEdC8qRJxMHygreqDYayNqJufoINtjQy_uTZvrF-kCYd3XXbTfkeJgC1A5IKfzcwcVGV-exzfLc1WqgiaR_hc35cvJAT_VrrktI-te4PFLB2Dp_HCQYBMLfeqGwZZa-vPhsmqIUe1NqPr8Lj9lHR7tSYcAdZtgt2pptJf-UnAV6fAcy7fWiaAAAAAATnyF9EA'
     with open(resource_path('bot_tokken.ini'), 'r', encoding='utf-8') as fp:
         bot = Client('bot', bot_token=fp.read())
     with open(resource_path('accounts.ini'), 'r', encoding='utf-8') as fp:
         data = fp.read()
         for line in data.splitlines():
-            accounts_list.append(Account(Client(line)))
+            accounts_list.append(Account(Client(session_string)))
         print('В работе ' + str(len(accounts_list)) + ' аккаунтов')
+    files = os.listdir(Path(sys.argv[0]).parent/'chats')
+    for i in range(len(accounts_list)):
+        print(files[i])
+        with(open(Path(sys.argv[0]).parent/'chats'/files[i], 'r', encoding='utf-8')) as fp:
+            data = fp.readlines()
+            accounts_list[i].answer_list = data
+            print('Всего чатов', len(data))
+
+
 
 def Save(t):
     if t == "Client":
@@ -41,8 +51,12 @@ async def success_login(message):
     mode_acc.append("Null")
     mode=0
     print("Connect")
+    await accounts_list[-1].client.disconnect()
     await accounts_list[-1].client.start()
-    Save("Client")
+    print(await accounts_list[-1].get_str())
+    with open(resource_path('accounts.ini'), 'w', encoding='utf-8') as fp:
+            for acc in accounts_list:
+                fp.write(await acc.get_str())
     await message.reply("Вход выполнен успешно!")
     # os.execv(sys.executable, ['python'] + sys.argv)
 
@@ -86,7 +100,7 @@ async def bot_handl(client, message):
 
             if mode==3:
                 if not proxyb:
-                    accounts_list.append(Account(Client("account"+str(len(accounts_list)), test_mode=True, proxy=None)))
+                    accounts_list.append(Account(Client("account"+str(len(accounts_list)), proxy=None)))
                     print('add')
                     await accounts_list[-1].client.connect()
                 phonenumber=message.text
@@ -200,14 +214,16 @@ def main():
     print('ID бота:', bot.get_me().id)
     for i in range(len(accounts_list)):
         try:
-            accounts_list[i].start()
+            accounts_list[i].client.start()
+            accounts_list[i].client.send_message('me','Worked!')
             print('Аккаунт', i, 'запущен')
-        except Exception:
+        except Exception as e:
+            print(e)
             print('Ошибка')
     idle()
     for i in range(len(accounts_list)):
         try:
-            accounts_list[i].stop()
+            accounts_list[i].client.stop()
             print('Аккаунт', i, 'запущен')
         except Exception:
             print('Ошибка')
