@@ -8,11 +8,22 @@ import asyncio
 from account import Account
 
 def def_sett():
-    global id_user_registration, accounts_list, mode_temp, mode_acc
+    global id_user_registration, accounts_list, mode_temp, mode_acc, help_str, username_acc, select_account, set_time
     id_user_registration=0
     accounts_list=[]
     mode_temp=None
     mode_acc=[]
+    username_acc=[]
+    set_time=[]
+    select_account = [[],[]]
+    help_str = '''
+/set_timeout – установить таймаут\n
+/set_spam_list – ввести список каналов для спама\n
+/start_spam – начать спам\n
+/stop_spam – остановить спам\n
+/select_account – выбрать аккаунт для настройки\n
+/help – список команд
+'''
 
 
 def resource_path(relative):
@@ -20,13 +31,12 @@ def resource_path(relative):
 
 def open_from_file():
     global bot, accounts_list
-    session_string = 'BQAYWqi3c2OkiL51OTVDhksaA25Txb4F7csOP_kp-4e18uiPJi7okWoRY2GHcLAoB0WRtZBFuZQWAYm75EAf-Cduzmf09H6cZxEoE85qwY8voqrJLL0cxSMpCC3zvEZPBhIylW2Bmv0v7Wbmyz1OA9AYkgiCZmJbK7-JEdC8qRJxMHygreqDYayNqJufoINtjQy_uTZvrF-kCYd3XXbTfkeJgC1A5IKfzcwcVGV-exzfLc1WqgiaR_hc35cvJAT_VrrktI-te4PFLB2Dp_HCQYBMLfeqGwZZa-vPhsmqIUe1NqPr8Lj9lHR7tSYcAdZtgt2pptJf-UnAV6fAcy7fWiaAAAAAATnyF9EA'
     with open(resource_path('bot_tokken.ini'), 'r', encoding='utf-8') as fp:
         bot = Client('bot', bot_token=fp.read())
     with open(resource_path('accounts.ini'), 'r', encoding='utf-8') as fp:
         data = fp.read()
         for line in data.splitlines():
-            accounts_list.append(Account(Client(session_string)))
+            accounts_list.append(Account(Client(line)))
         print('В работе ' + str(len(accounts_list)) + ' аккаунтов')
     files = os.listdir(Path(sys.argv[0]).parent/'chats')
     for i in range(len(accounts_list)):
@@ -45,23 +55,25 @@ def Save(t):
                 fp.write(acc.get_str())
 
 async def success_login(message):
-    global id_acc, answer_list, id_user,level_users,stt_reg,mode, id_user_registration, mode_acc
+    global id_acc, answer_list, id_user,level_users,stt_reg,mode, id_user_registration, mode_acc, help_str, username_acc, select_account
     print("Успешный вход!")
     id_user_registration=0
     mode_acc.append("Null")
     mode=0
-    print("Connect")
     await accounts_list[-1].client.disconnect()
     await accounts_list[-1].client.start()
     print(await accounts_list[-1].get_str())
     with open(resource_path('accounts.ini'), 'w', encoding='utf-8') as fp:
             for acc in accounts_list:
                 fp.write(await acc.get_str())
-    await message.reply("Вход выполнен успешно!")
-    # os.execv(sys.executable, ['python'] + sys.argv)
+    username_acc.append(accounts_list[i].client.get_me().username)
+    select_account[0].append(message.chat.id)
+    select_account[1].append(len(accounts_list)-1)
+    await message.reply('Вход выполнен успешно!\n' + help_str)
+
 
 async def bot_handl(client, message):
-    global proxyb, proxyc, mode, id_user_registration, code, phonehash, accounts_list, phonenumber, code
+    global proxyb, proxyc, mode, id_user_registration, code, phonehash, accounts_list, phonenumber, code, select_account, set_time
     print(message.text)
     if not message.text is None:
         if id_user_registration==message.chat.id:
@@ -205,8 +217,45 @@ async def bot_handl(client, message):
                     await message.reply("Кто-то уже регистрируется! Пожалуйста подождите!")
                 return
 
+            if message.text == '/help':
+                await message.reply(help_str)
+                return
+            if message.text == '/select_account':
+                answ='Выберите бот для настройки\n'
+                for name in username_acc:
+                    answ += '/bot_' + name + '\n'
+                await message.reply(answ)
+            
+            if message.chat.id in select_account[0]:
+                n = select_account[1][select_account[0].index(message.chat.id)]
+                if message.text[:5] == '/bot_':
+                    select_account[1][select_account[0].index(message.chat.id)] = username_acc.index(message.text[5:])
+                    await message.reply('Выбран аккаунт: ' + username_acc[n])
+                    print(select_account)
+                    return
+                if message.chat.id in set_time:
+                    accounts_list[n].timeout=int(message.text)
+                    await message.reply('Таймаут ' + str(accounts_list[n].timeout) + ' секунд')
+                    set_time.remove(message.chat.id)
+                    return
+                if message.text == '/set_timeout':
+                    set_time.append(message.chat.id)
+                    await message.reply('Введите таймаут (сек)')
+                if message.text == '/set_spam_list':
+                    return
+                if message.text == '/start_spam':
+                    return
+                if message.text == '/stop_spam':
+                    return
+            else:
+                select_account[0].append(message.chat.id)
+                select_account[1].append(-1)
+                print(select_account)
+
+                    
+
 def main():
-    global bot
+    global bot, username_acc
     def_sett()
     open_from_file()
     bot.add_handler(MessageHandler(bot_handl))
@@ -215,16 +264,16 @@ def main():
     for i in range(len(accounts_list)):
         try:
             accounts_list[i].client.start()
-            accounts_list[i].client.send_message('me','Worked!')
+            username_acc.append(accounts_list[i].client.get_me().username)
             print('Аккаунт', i, 'запущен')
         except Exception as e:
             print(e)
             print('Ошибка')
+    print(username_acc)
     idle()
     for i in range(len(accounts_list)):
         try:
             accounts_list[i].client.stop()
-            print('Аккаунт', i, 'запущен')
         except Exception:
             print('Ошибка')
 
