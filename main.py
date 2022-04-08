@@ -3,50 +3,51 @@ from pathlib import Path
 import sys
 from pyrogram import Client, idle, filters
 from pyrogram.handlers import MessageHandler
-from pyrogram.errors import RPCError, SessionPasswordNeeded, PeerFlood
+from pyrogram.errors import RPCError, SessionPasswordNeeded, PeerFlood, UserDeactivated, UserDeactivatedBan
 import asyncio
 from account import Account
 
 def def_sett():
-    global id_user_registration, accounts_list, mode_temp, mode_acc, help_str, username_acc, select_account, set_time
+    global id_user_registration, accounts_list, mode_temp, mode_acc, help_str, username_acc, select_account, set_time, spam, set_spam_text
     id_user_registration=0
     accounts_list=[]
     mode_temp=None
     mode_acc=[]
     username_acc=[]
     set_time=[]
+    set_spam_text=[]
     select_account = [[],[]]
+    spam=[]
     help_str = '''
 /set_timeout – установить таймаут\n
-/set_spam_list – ввести список каналов для спама\n
+/set_spam_chats – ввести список каналов для спама\n
+/set_spam_message – ввести список сообщений для спама
 /start_spam – начать спам\n
 /stop_spam – остановить спам\n
 /select_account – выбрать аккаунт для настройки\n
 /help – список команд
 '''
 
-
 def resource_path(relative):
     return Path(sys.argv[0]).parent/relative
 
 def open_from_file():
-    global bot, accounts_list
+    global bot, accounts_list, spam
     with open(resource_path('bot_tokken.ini'), 'r', encoding='utf-8') as fp:
         bot = Client('bot', bot_token=fp.read())
     with open(resource_path('accounts.ini'), 'r', encoding='utf-8') as fp:
         data = fp.read()
         for line in data.splitlines():
             accounts_list.append(Account(Client(line)))
+            spam.append(False)
         print('В работе ' + str(len(accounts_list)) + ' аккаунтов')
     files = os.listdir(Path(sys.argv[0]).parent/'chats')
     for i in range(len(accounts_list)):
         print(files[i])
         with(open(Path(sys.argv[0]).parent/'chats'/files[i], 'r', encoding='utf-8')) as fp:
             data = fp.readlines()
-            accounts_list[i].answer_list = data
+            accounts_list[i].chats_list = data
             print('Всего чатов', len(data))
-
-
 
 def Save(t):
     if t == "Client":
@@ -54,6 +55,11 @@ def Save(t):
             for acc in accounts_list:
                 fp.write(acc.get_str())
 
+async def spamming(n):
+    while spam[n]:
+        print(accounts_list[n].spam_message())
+        await asyncio.sleep(accounts_list[n].timeout)
+    
 async def success_login(message):
     global id_acc, answer_list, id_user,level_users,stt_reg,mode, id_user_registration, mode_acc, help_str, username_acc, select_account
     print("Успешный вход!")
@@ -71,9 +77,8 @@ async def success_login(message):
     select_account[1].append(len(accounts_list)-1)
     await message.reply('Вход выполнен успешно!\n' + help_str)
 
-
 async def bot_handl(client, message):
-    global proxyb, proxyc, mode, id_user_registration, code, phonehash, accounts_list, phonenumber, code, select_account, set_time
+    global proxyb, proxyc, mode, id_user_registration, code, phonehash, accounts_list, phonenumber, code, select_account, set_time, set_spam_text
     print(message.text)
     if not message.text is None:
         if id_user_registration==message.chat.id:
@@ -228,25 +233,51 @@ async def bot_handl(client, message):
             
             if message.chat.id in select_account[0]:
                 n = select_account[1][select_account[0].index(message.chat.id)]
+                
                 if message.text[:5] == '/bot_':
                     select_account[1][select_account[0].index(message.chat.id)] = username_acc.index(message.text[5:])
                     await message.reply('Выбран аккаунт: ' + username_acc[n])
                     print(select_account)
                     return
-                if message.chat.id in set_time:
-                    accounts_list[n].timeout=int(message.text)
-                    await message.reply('Таймаут ' + str(accounts_list[n].timeout) + ' секунд')
-                    set_time.remove(message.chat.id)
-                    return
-                if message.text == '/set_timeout':
-                    set_time.append(message.chat.id)
-                    await message.reply('Введите таймаут (сек)')
-                if message.text == '/set_spam_list':
-                    return
-                if message.text == '/start_spam':
-                    return
-                if message.text == '/stop_spam':
-                    return
+                
+                if n!=-1:
+                    if message.text == '/clear':
+                        accounts_list[n].message_list=[]
+                        await message.reply('Список спам сообщений очищен!')    
+                        return
+                    
+                    if message.text == '/save':
+                        set_spam_text.remove(message.chat.id)
+                        await message.reply('Сохраненно\n/start_spam – начать спам')
+                        return
+                    
+                    if message.chat.id in set_spam_text:
+                        accounts_list[n].message_list.append(message.text)
+                        print(accounts_list[n].message_list)
+                        return
+                    
+                    if message.chat.id in set_time:
+                        accounts_list[n].timeout=int(message.text)
+                        await message.reply('Таймаут ' + str(accounts_list[n].timeout) + ' секунд')
+                        set_time.remove(message.chat.id)
+                        return
+                    
+                    if message.text == '/set_timeout':
+                        set_time.append(message.chat.id)
+                        await message.reply('Введите таймаут (сек)')
+                        return
+                    
+                    if message.text == '/set_spam_message':
+                        print('asdsada')
+                        set_spam_text.append(message.chat.id)
+                        await message.reply('Вводите сообщения для спама\n/clear – очистить список сообщений\n/save – сохранить список сообщений')
+
+                    if message.text == '/start_spam':
+                        spam[n] = True
+                        await spamming(n)
+                    if message.text == '/stop_spam':
+                        spam[n] = False
+                        return
             else:
                 select_account[0].append(message.chat.id)
                 select_account[1].append(-1)
@@ -259,16 +290,28 @@ def main():
     def_sett()
     open_from_file()
     bot.add_handler(MessageHandler(bot_handl))
-    bot.start()
-    print('ID бота:', bot.get_me().id)
+    
+    try:
+        bot.start()
+        print('ID бота:', bot.get_me().id)
+    except UserDeactivated:
+        print('Бот был забанен! Замените токкен!')
+    except UserDeactivatedBan:
+        print('Бот был забанен! Замените токкен!')
+        
     for i in range(len(accounts_list)):
         try:
             accounts_list[i].client.start()
             username_acc.append(accounts_list[i].client.get_me().username)
             print('Аккаунт', i, 'запущен')
+        except UserDeactivated:
+            print('Удален бот ' + str(i))
+        except UserDeactivatedBan:
+            print('Удален бот ' + str(i))
         except Exception as e:
             print(e)
             print('Ошибка')
+            
     print(username_acc)
     idle()
     for i in range(len(accounts_list)):
