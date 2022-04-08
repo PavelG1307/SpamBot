@@ -57,7 +57,17 @@ def Save(t):
 
 async def spamming(n):
     while spam[n]:
-        print(accounts_list[n].spam_message())
+        try:
+            chat = accounts_list[n].spam_chat()
+            print(chat)
+            chatid = (await accounts_list[n].client.join_chat(chat)).id
+            # print(accounts_list[n].spam_message())
+            await accounts_list[n].client.send_message(chat_id = chatid, text = accounts_list[n].spam_message())
+            print('Chat id:', chatid)
+            await asyncio.sleep(5)
+            await accounts_list[n].client.leave_chat(chat)
+        except Exception as e:
+            print(e)
         await asyncio.sleep(accounts_list[n].timeout)
     
 async def success_login(message):
