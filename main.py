@@ -473,6 +473,5 @@ async def main():
         except Exception:
             print('Ошибка')
 
-
 if __name__ == '__main__':
     asyncio.run(main())
