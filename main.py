@@ -1,14 +1,15 @@
 import os
 from pathlib import Path
 import sys
-from pyrogram import Client, idle, filters
+from pyrogram import Client, Clienttt, idle
 from pyrogram.handlers import MessageHandler
-from pyrogram.errors import RPCError, SessionPasswordNeeded, PeerFlood, UserDeactivated, UserDeactivatedBan
+from pyrogram.errors import RPCError, SessionPasswordNeeded, UserDeactivated, UserDeactivatedBan
+from pyrogram.types import ReplyKeyboardMarkup, ReplyKeyboardRemove, KeyboardButton
 import asyncio
 from account import Account
 
 def def_sett():
-    global id_user_registration, accounts_list, mode_temp, mode_acc, help_str, username_acc, select_account, set_time, spam, set_spam_text
+    global id_user_registration, accounts_list, mode_temp, mode_acc, help_str, username_acc, select_account, set_time, set_spam_text, set_spam_chats
     id_user_registration=0
     accounts_list=[]
     mode_temp=None
@@ -17,14 +18,17 @@ def def_sett():
     set_time=[]
     set_spam_text=[]
     select_account = [[],[]]
-    spam=[]
+    set_spam_chats=[]
     help_str = '''
+Доступны следущие команды:\n
+/status – статус аккаунта\n
 /set_timeout – установить таймаут\n
 /set_spam_chats – ввести список каналов для спама\n
-/set_spam_message – ввести список сообщений для спама
+/set_spam_message – ввести список сообщений для спама\n
 /start_spam – начать спам\n
 /stop_spam – остановить спам\n
 /select_account – выбрать аккаунт для настройки\n
+/start – добавить аккаунт\n
 /help – список команд
 '''
 
@@ -32,43 +36,84 @@ def resource_path(relative):
     return Path(sys.argv[0]).parent/relative
 
 def open_from_file():
-    global bot, accounts_list, spam
+    global bot, accounts_list
     with open(resource_path('bot_tokken.ini'), 'r', encoding='utf-8') as fp:
-        bot = Client('bot', bot_token=fp.read())
+        bot = Clienttt('bot', bot_token=fp.read())
     with open(resource_path('accounts.ini'), 'r', encoding='utf-8') as fp:
         data = fp.read()
         for line in data.splitlines():
             accounts_list.append(Account(Client(line)))
-            spam.append(False)
         print('В работе ' + str(len(accounts_list)) + ' аккаунтов')
-    files = os.listdir(Path(sys.argv[0]).parent/'chats')
+        
+
+def open_chats():
     for i in range(len(accounts_list)):
-        print(files[i])
-        with(open(Path(sys.argv[0]).parent/'chats'/files[i], 'r', encoding='utf-8')) as fp:
-            data = fp.readlines()
-            accounts_list[i].chats_list = data
-            print('Всего чатов', len(data))
-
-def Save(t):
-    if t == "Client":
-        with open(resource_path('bot_tokken.ini'), 'w', encoding='utf-8') as fp:
-            for acc in accounts_list:
-                fp.write(acc.get_str())
-
-async def spamming(n):
-    while spam[n]:
         try:
+            with(open(Path(sys.argv[0]).parent/f'chats/{username_acc[i]}.txt', 'r', encoding='utf-8')) as fp:
+                data = fp.readlines()
+                accounts_list[i].chats_list = data
+                print('Всего чатов', len(data))
+        except Exception:
+                print(f'Чатов аккаунта {i} не найдено')
+
+async def Save(t):
+    if t == "Client":
+        print('Save Client')
+        with open(resource_path('accounts.ini'), 'w', encoding='utf-8') as fp:
+            for acc in accounts_list:
+                fp.write(await acc.client.export_session_string())
+            fp.close
+
+def delete(n):
+    accounts_list.pop(n)
+    username_acc.pop(n)
+    asyncio.run(Save("Client"))
+    return True
+    
+async def spamming(n, message):
+    await message.repy('Спам запущен')
+    accounts_list[n].count_success = 0
+    chat_prev = ""
+    while accounts_list[n].spam:
+        try:
+            t=accounts_list[n].timeout
+            
             chat = accounts_list[n].spam_chat()
             print(chat)
             chatid = (await accounts_list[n].client.join_chat(chat)).id
-            # print(accounts_list[n].spam_message())
+            await asyncio.sleep(accounts_list[n].timeout/3)
+            t -= t/3
+            
+            if chat_prev != "":
+                try:
+                    await accounts_list[n].client.leave_chat(chat_prev)
+                except Exception as e:
+                    print(e)
+            chat_prev = chat
+            
+            await asyncio.sleep(accounts_list[n].timeout/3)
+            t -= t/3
+            
             await accounts_list[n].client.send_message(chat_id = chatid, text = accounts_list[n].spam_message())
-            print('Chat id:', chatid)
-            await asyncio.sleep(5)
-            await accounts_list[n].client.leave_chat(chat)
+            accounts_list[n].count_success += 1
+            await message.reply(f'Отпрваленно сообщение в @{chat}\nЗа текущий сеанс отправленно {accounts_list[n].count_success} сообщений')
+            
+            await asyncio.sleep(accounts_list[n].timeout/3)
+            t -= t/3
+            
+            
+        except UserDeactivatedBan:
+            delete(n)
+            print(f'Аккаунт {username_acc[n]} в бане')
+            await message.reply(f'Аккаунт {username_acc[n]} был деактивирован!')
+            return
         except Exception as e:
             print(e)
-        await asyncio.sleep(accounts_list[n].timeout)
+            # FLOOD_WAIT_X
+            # SLOWMODE_WAIT_X
+            # USERNAME_NOT_OCCUPIED
+            # CHAT_WRITE_FORBIDDEN
+            await asyncio.sleep(t)
     
 async def success_login(message):
     global id_acc, answer_list, id_user,level_users,stt_reg,mode, id_user_registration, mode_acc, help_str, username_acc, select_account
@@ -78,19 +123,20 @@ async def success_login(message):
     mode=0
     await accounts_list[-1].client.disconnect()
     await accounts_list[-1].client.start()
-    print(await accounts_list[-1].get_str())
-    with open(resource_path('accounts.ini'), 'w', encoding='utf-8') as fp:
-            for acc in accounts_list:
-                fp.write(await acc.get_str())
-    username_acc.append(accounts_list[i].client.get_me().username)
-    select_account[0].append(message.chat.id)
-    select_account[1].append(len(accounts_list)-1)
+    await Save("Client")
+    username_acc.append((await accounts_list[-1].client.get_me()).username)
+    if message.chat.id in select_account[0]:
+        select_account[1][select_account[0].index(message.chat.id)] = len(accounts_list) - 1
+    else:
+        select_account[0].append(message.chat.id)
+        select_account[1].append(len(accounts_list)-1)
     await message.reply('Вход выполнен успешно!\n' + help_str)
 
 async def bot_handl(client, message):
-    global proxyb, proxyc, mode, id_user_registration, code, phonehash, accounts_list, phonenumber, code, select_account, set_time, set_spam_text
+    global proxyb, proxyc, mode, id_user_registration, code, set_spam_chats, phonehash, accounts_list, phonenumber, code, select_account, set_time, set_spam_text
     print(message.text)
-    if not message.text is None:
+    # if not message.text is None:
+    if True:
         if id_user_registration==message.chat.id:
             if mode==5:
                 try:
@@ -158,7 +204,7 @@ async def bot_handl(client, message):
                     await accounts_list[-1].client.connect()
                 except Exception as e:
                     print(e)
-                    await message.reply( "Произошла ошибка! Повторить попытку? /try\nЛибо ведите другие hostname и порт\n/without_proxy – подключиться без прокси")
+                    await message.reply("Произошла ошибка! Повторить попытку? /try\nЛибо ведите другие hostname и порт\n/without_proxy – подключиться без прокси")
                 else:
                     mode+=1
                     await message.reply("Подключение прокси прошло успешно! Введите номер телефона аккаунта:")
@@ -235,20 +281,25 @@ async def bot_handl(client, message):
             if message.text == '/help':
                 await message.reply(help_str)
                 return
+            
             if message.text == '/select_account':
                 answ='Выберите бот для настройки\n'
                 for name in username_acc:
                     answ += '/bot_' + name + '\n'
                 await message.reply(answ)
             
+            if message.text == '/bot_stop':
+                        exit()
+                        
             if message.chat.id in select_account[0]:
                 n = select_account[1][select_account[0].index(message.chat.id)]
                 
-                if message.text[:5] == '/bot_':
-                    select_account[1][select_account[0].index(message.chat.id)] = username_acc.index(message.text[5:])
-                    await message.reply('Выбран аккаунт: ' + username_acc[n])
-                    print(select_account)
-                    return
+                if not message.text is None:
+                    if message.text[:5] == '/bot_':
+                        select_account[1][select_account[0].index(message.chat.id)] = username_acc.index(message.text[5:])
+                        await message.reply('Выбран аккаунт: ' + username_acc[n] , reply_markup=ReplyKeyboardMarkup([[KeyboardButton('/status'), KeyboardButton('/help'), KeyboardButton('/start_spam')]]))
+                        print(select_account)
+                        return
                 
                 if n!=-1:
                     if message.text == '/clear':
@@ -258,13 +309,27 @@ async def bot_handl(client, message):
                     
                     if message.text == '/save':
                         set_spam_text.remove(message.chat.id)
-                        await message.reply('Сохраненно\n/start_spam – начать спам')
+                        await message.reply('Сохраненно\n/start_spam – начать спам', reply_markup=ReplyKeyboardMarkup([[KeyboardButton('/status'), KeyboardButton('/start_spam')]]))
                         return
                     
                     if message.chat.id in set_spam_text:
                         accounts_list[n].message_list.append(message.text)
                         print(accounts_list[n].message_list)
                         return
+                    
+                    if message.chat.id in set_spam_chats:
+                        
+                        try:
+                            path=await bot.download_media(message=message, file_name = f'./chats/{username_acc[n]}.txt')
+                            print(f'Файл сохранен: {path}')
+                            with open(path, mode = 'r') as fp:
+                                accounts_list[n].chats_list = fp.readlines()
+                            await message.reply('Получилось извлечь ' + str(len(accounts_list[n].chats_list)) + ' чат(-ов)')
+                        except Exception as e:
+                            print(e)
+                            await message.reply('Ошибка')
+                        finally:
+                            set_spam_chats.remove(message.chat.id)
                     
                     if message.chat.id in set_time:
                         accounts_list[n].timeout=int(message.text)
@@ -278,25 +343,62 @@ async def bot_handl(client, message):
                         return
                     
                     if message.text == '/set_spam_message':
-                        print('asdsada')
                         set_spam_text.append(message.chat.id)
-                        await message.reply('Вводите сообщения для спама\n/clear – очистить список сообщений\n/save – сохранить список сообщений')
-
-                    if message.text == '/start_spam':
-                        spam[n] = True
-                        await spamming(n)
-                    if message.text == '/stop_spam':
-                        spam[n] = False
+                        await message.reply('Вводите сообщения для спама\n/clear – очистить список сообщений\n/save – сохранить список сообщений', reply_markup=ReplyKeyboardMarkup([[KeyboardButton('/clear'), KeyboardButton('/save')]]))
                         return
+                    
+                    
+                        
+                    if message.text == '/set_spam_chats':
+                        set_spam_chats.append(message.chat.id)
+                        await message.reply('Прикрепите к сообщению файл txt, cо списком **ссылок** на чаты\nПример:\nhttps://t.me/liberoofficialgroup\nhttps://t.me/fegchat\nhttps://t.me/virtchat35')
+                        return
+                    
+                    if message.text == '/start_spam':
+                        if not accounts_list[n].spam:
+                            accounts_list[n].spam = True
+                            await spamming(n, message)
+                            await message.reply('Спам запущен\n/status – посмотреть статус', reply_markup=ReplyKeyboardMarkup([[KeyboardButton('/status'), KeyboardButton('/stop_spam')]]))
+                        else:
+                            await message.reply('Спам уже запущен\n/status – посмотреть статус')
+                            
+                    if message.text == '/stop_spam':
+                        if accounts_list[n].spam:
+                            accounts_list[n].spam = False
+                            await message.reply(f'Спам остановлен\nОтправленно {accounts_list[n].count_success} сообщений', reply_markup=ReplyKeyboardMarkup([[KeyboardButton('/start_spam')]]))
+                        else:
+                            await message.reply('Спам не запущен')
+                        return
+                    
+                    if message.text == '/status':
+                        acc = await accounts_list[n].client.get_me()
+                        # print(acc)
+                        answ = f'Аккаунт **{acc.username}**\nТаймаут: **{accounts_list[n].timeout}** секунд\n'
+                        if accounts_list[n].spam:
+                            answ+=f'Спам **запущен**\nНа текущий момент отправленно **{accounts_list[n].count_success}** сообщений\n'
+                        else:
+                            answ+='Спам **остановлен**\n'
+                        answ+='В спам листе **' + str(len(accounts_list[n].message_list)) + '** сообщений\nРассылка ведется в **' + str(len(accounts_list[n].chats_list)) + '** чат(-ов)\n'
+                        if not (acc.is_scam and acc.is_fake):
+                            answ+='Ограничений на аккаунте **нет**'
+                        else:
+                            answ+='На аккаунте **ограничения**\n'
+                        await message.reply(answ)
+                else:
+                    if message.text != '/select_account':
+                        await message.reply('Выберите аккаунт с помощью команды /select_account', reply_markup=ReplyKeyboardMarkup([[KeyboardButton('/select_account')]]))
             else:
                 select_account[0].append(message.chat.id)
                 select_account[1].append(-1)
+                if message.text != '/select_account':
+                    await message.reply('Выберите аккаунт с помощью команды /select_account', reply_markup=ReplyKeyboardMarkup([[KeyboardButton('/select_account')]]))
                 print(select_account)
 
                     
 
 def main():
     global bot, username_acc
+    print(str(Path(sys.argv[0]).parent/'chats'))
     def_sett()
     open_from_file()
     bot.add_handler(MessageHandler(bot_handl))
@@ -315,14 +417,19 @@ def main():
             username_acc.append(accounts_list[i].client.get_me().username)
             print('Аккаунт', i, 'запущен')
         except UserDeactivated:
-            print('Удален бот ' + str(i))
+            if delete(i):
+                print('Удален бот ' + str(i))
+                i-=1
         except UserDeactivatedBan:
-            print('Удален бот ' + str(i))
+            if delete(i):
+                print('Удален бот ' + str(i))
+                i-=1
         except Exception as e:
             print(e)
             print('Ошибка')
             
     print(username_acc)
+    open_chats()
     idle()
     for i in range(len(accounts_list)):
         try:

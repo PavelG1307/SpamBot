@@ -1,10 +1,13 @@
 import random
 class Account(object):
 
-    message_list=['Привет', 'Hi', 'Hello', 'hi']
+    message_list=["Hello, I am promoting telegram channels and adding traffic from other people's channels! If you are interested, write in PM", 'Hi, if you need traffic to your Telegram channel, write in private messages!']
 
-    number_chat=10
-    timeout=20
+    number_chat=100
+    timeout=300
+    spam = False
+    count_success = 0
+    chats_list = []
 
     def __init__(self, client):
         self.client=client
