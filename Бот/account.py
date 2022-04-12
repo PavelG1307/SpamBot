@@ -3,15 +3,11 @@ class Account(object):
 
     message_list=["Hello, I am promoting telegram channels and adding traffic from other people's channels! If you are interested, write in PM", 'Hi, if you need traffic to your Telegram channel, write in private messages!']
 
-    number_chat=350
+    number_chat=270
     timeout=300
     spam = False
     count_success = 0
     chats_list = []
-    
-    w_chat=""
-    p_chat=""
-    id_chat=0
 
     def __init__(self, client):
         self.client=client

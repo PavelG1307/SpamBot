@@ -3,7 +3,7 @@ from pathlib import Path
 import sys
 from pyrogram import Client, idle
 from pyrogram.handlers import MessageHandler
-from pyrogram.errors import RPCError, SessionPasswordNeeded, UserDeactivated, UserDeactivatedBan, UsernameNotOccupied, UserNotParticipant, ChatWriteForbidden, SlowmodeWait, ChannelPrivate, ChannelInvalid, ChatAdminRequired
+from pyrogram.errors import RPCError, SessionPasswordNeeded, UserDeactivated, UserDeactivatedBan, UsernameNotOccupied, UserNotParticipant, ChatWriteForbidden, SlowmodeWait
 from pyrogram.types import ReplyKeyboardMarkup, ReplyKeyboardRemove, KeyboardButton
 import asyncio
 from account import Account
@@ -59,7 +59,7 @@ async def open_chats():
             with(open(f'./chats/{username_acc[i]}.txt', 'r', encoding='utf-8')) as fp:
                 data = fp.readlines()
                 accounts_list[i].chats_list = data
-                print(f'В аккаунте {i} {len(data)} чатов')
+                print('Всего чатов', len(data))
         except Exception:
                 print(f'Чатов аккаунта {i} не найдено')
 
@@ -67,16 +67,14 @@ async def Save(t):
     if t == "Client":
         print('Save Client')
         with open('./accounts.ini', 'w', encoding='utf-8') as fp:
-            fp.truncate(0)
             for acc in accounts_list:
-                fp.write(await acc.client.export_session_string() + '\n')
+                fp.write(await acc.client.export_session_string())
             fp.close
     
     if t == "Message":
         print("Save message")
         answ=""
         with open('./message.ini', 'w', encoding='utf-8') as fp:
-            fp.truncate(0)
             for acc in accounts_list:
                 for mes in acc.message_list:
                     answ += mes +'&'
@@ -96,35 +94,35 @@ async def delete(n):
 async def spamming(n, message):
     await message.reply('Спам запущен')
     accounts_list[n].count_success = 0
-    accounts_list[n].w_chat = ""
+    chat_prev = ""
     while accounts_list[n].spam:
         try:
             t=accounts_list[n].timeout
             
-            accounts_list[n].w_chat = accounts_list[n].spam_chat()
-            print(f'Работа с чатом: {accounts_list[n].w_chat}')
-            accounts_list[n].id_chat = (await accounts_list[n].client.join_chat(accounts_list[n].w_chat)).id
+            chat = accounts_list[n].spam_chat()
+            print(f'Работа с чатом: {chat}')
+            chatid = (await accounts_list[n].client.join_chat(chat)).id
             await asyncio.sleep(accounts_list[n].timeout/3)
             t -= t/3
             
-            if accounts_list[n].p_chat != "":
+            if chat_prev != "":
                 try:
-                    await accounts_list[n].client.leave_chat(accounts_list[n].p_chat)
-                    print(f'Покинул чат: {accounts_list[n].p_chat}')
+                    await accounts_list[n].client.leave_chat(chat_prev)
+                    print(f'Покинул чат: {chat_prev}')
                 except UserNotParticipant:
                     pass
                 except UsernameNotOccupied:
                     pass
                 except Exception as e:
                     print(e)
-            accounts_list[n].p_chat = accounts_list[n].w_chat
+            chat_prev = chat
             
             await asyncio.sleep(accounts_list[n].timeout/3)
             t -= t/3
             
-            await accounts_list[n].client.send_message(chat_id = accounts_list[n].id_chat, text = accounts_list[n].spam_message())
+            await accounts_list[n].client.send_message(chat_id = chatid, text = accounts_list[n].spam_message())
             accounts_list[n].count_success += 1
-            await message.reply(f'Сообщение отправленно\nЧат: @{accounts_list[n].w_chat}\nАккаунт: @{username_acc[n]}\nЗа текущий сеанс отправленно {accounts_list[n].count_success} сообщение (-й)', disable_notification = True, reply_markup=ReplyKeyboardMarkup([[KeyboardButton('/status'), KeyboardButton('/stop_spam')]], resize_keyboard=True))
+            await message.reply(f'Сообщение отправленно\nЧат: @{chat}\nАккаунт: @{username_acc[n]}\nЗа текущий сеанс отправленно {accounts_list[n].count_success} сообщение (-й)', disable_notification = True, reply_markup=ReplyKeyboardMarkup([[KeyboardButton('/status'), KeyboardButton('/stop_spam')]], resize_keyboard=True))
             
             await asyncio.sleep(accounts_list[n].timeout/3)
             t -= t/3
@@ -140,20 +138,14 @@ async def spamming(n, message):
             print(f'Аккаунт @{username_acc[n]} в бане')
             await message.reply(f'Аккаунт {username_acc[n]} был деактивирован!')
             return
-        except ChannelPrivate:
-            print(f'Чат @{accounts_list[n].w_chat} приватный')
-        except ChannelInvalid:
-            print(f'Чат @{accounts_list[n].w_chat} не найден')
         except UsernameNotOccupied:
-            print(f'Чат @{accounts_list[n].w_chat} не найден')
+            print(f'Чат @{chat} не найден')
         except UserNotParticipant:
             pass
         except ChatWriteForbidden:
-            print(f'Сообщения в чате @{accounts_list[n].w_chat} запрещены')
+            print(f'Сообщения в чате @{chat} запрещены')
         except SlowmodeWait:
-            print(f'В чате @{accounts_list[n].w_chat} «медленный режим» отправки сообщений')
-        except ChatAdminRequired:
-            print(f'Для отправки сообщения в чат @{accounts_list[n].w_chat} требуются права администратора')
+            print(f'В чате @{chat} «медленный режим» отправки сообщений')
         except Exception as e:
             print(e)
         await asyncio.sleep(t)
@@ -263,7 +255,7 @@ async def bot_handl(client, message):
                             username=None,
                             password=None
                         )
-                        accounts_list.append(Account(Client("account"+str(len(accounts_list)), proxy=proxyc)))
+                        accounts_list.append(Account(Client("account"+str(int(accounts_list[-1].session_name[7])+1), proxy=proxyc)))
                         await message.reply("Пробую подключиться...")
                         await accounts_list[-1].client.connect()
                     else:
@@ -274,7 +266,7 @@ async def bot_handl(client, message):
                                 username=message.text.split(" ")[2],
                                 password=message.text.split(" ")[3]
                             )
-                            accounts_list.append(Account((Client("account"+str(len(accounts_list)), proxy=proxyc))))
+                            accounts_list.append(Account(Client("account"+str(int(accounts_list[-1].session_name[7])+1), proxy=proxyc)))
                             await message.reply("Пробую подключиться...")
                             await accounts_list[-1].client.connect()
                             
@@ -340,7 +332,7 @@ async def bot_handl(client, message):
                 if not message.text is None:
                     if message.text[:5] == '/bot_':
                         select_account[1][select_account[0].index(message.chat.id)] = username_acc.index(message.text[5:])
-                        await message.reply('Выбран аккаунт: ' + message.text[5:], reply_markup=ReplyKeyboardMarkup([[KeyboardButton('/status'), KeyboardButton('/help'), KeyboardButton('/start_spam')]], resize_keyboard=True))
+                        await message.reply('Выбран аккаунт: ' + username_acc[n], reply_markup=ReplyKeyboardMarkup([[KeyboardButton('/status'), KeyboardButton('/help'), KeyboardButton('/start_spam')]], resize_keyboard=True))
                         print(select_account)
                         return
                 
