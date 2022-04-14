@@ -1,9 +1,9 @@
 import random
 class Account(object):
 
-    message_list=["Hello, I am promoting telegram channels and adding traffic from other people's channels! If you are interested, write in PM", 'Hi, if you need traffic to your Telegram channel, write in private messages!']
+    message_list=[]
 
-    number_chat=350
+    number_chat=0
     timeout=300
     spam = False
     count_success = 0
