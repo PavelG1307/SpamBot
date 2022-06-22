@@ -1,0 +1,12 @@
+{
+  "type": "service_account",
+  "project_id": "rock-perigee-348712",
+  "private_key_id": "0b0c9481018a118948e08f4fe19c7ca9ba98c946",
+  "private_key": "-----BEGIN PRIVATE KEY-----\nMIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC24EztZbTyKdyB\nVVRC72lNP48CVSOOp1JomlPwAwsStY5WBVy+ebbtgwwU/GOg1yMh0SoduUTmOS9D\nCjxKih/lZPDjWFxc9QgrJDVMsL2H2IoaZy+cdSVwoupxyo6R5BMMm9w1jPAH/+tb\n/GPTuCgaAEU9uXXmsx9e6gVnHSN4VaJURBZVbyYRJpbD77zjdAgvAxT8gblO7LVq\nsaVjaS7cyrRzqTzC9ayzSVdI+TNi/4Vyi3A10ntT82UpYnpwD4XFbg2Nvat/sx2Z\nc4VFfCm6fbkj2NZRIeiXgEzB4c7TtP5f6zUvwUTkSF41dSSzG0Rm56HBiQq6QePs\nT4FG8oIhAgMBAAECggEAAXSXGWxW0QYsOaEfFQPF7VnXFbWwCLzKm5wSgFgLS+V7\naOV9v7ACk40OOjhzH2pG6QB9S2D8O4gcDrkH/cRv7kS+AsS1CjIIell/136MhTR5\nmOY8p21WDJrbzaTMJnAC3cKabsu2VWmlJJ8C0tvWhqpy9xqxiYA8SYo7nqeliFxd\nqMGx4P3PXpfuUCNomL6mJwvyDoLjs+HXdxD7Vi33mwhRdFc2Sguqcpux0Odx/ouv\n/X/6RfHpYf35R4fHUcVIw1Zjm4eFHeDVyHdJEBCcIHZdSG6O/djL4UorApIWY9Co\n/P7biHWi+lavdBXCMBcH1WQ4BnYKMEHqFIo3xn56KQKBgQD/9NH/P4IEgAj33bgi\nTqxP9fp7MZXwcgGZ7SsTToeBqOUmHzFuWbyvIXvHmKAqHBFq8OHNpGBxd9SAyfC0\njev3nxgeO9WTTtKz/Fey0kRAcr0uOPeJpAylj+n69cPh/Rqfa2hMJh941GL4sI45\nLcXKkSRSi/ia4MZ32F+Lt+ysPQKBgQC26EnG2Aov3hXXzM1LpDzykrnw3XOEmDEx\nP8wWoXqaRGVmgXP5Gnf5se5B5SYwPhWvW4/FupzdBFwIR2e8Yu1kUlESxHgi5D6c\nABooqW2DMb0JHjf+4Ql1j6M1XrINoiZDAprRk/qEsyFUQcgrQQrevu8SfEdPdP2v\nm3Few6RXtQKBgD6uBHL+aWeStx+D82CrZXUbZqCejvpX4N6B/ud2dqag5qTERMWi\nQhudFoPVc3t8biODI7jJRTjkQGzdhw2gJ6X3Ft/ohS/SwLSE2jEXXtFth7h3CN9z\nBgnRSVpErxh7c/aQRfVH7LMZR7dg/SMxe1tU2dFBJ7s9yjx1B0je3J19AoGAXG6Q\n8gK1SzFhOngN+z7ZagCKJNXUjdpXabsCySD7k0AjOiULVYRxwuaPMA+8N774OHD9\n+/9tTCfq1mg3XTVlIECVJfXRfFh5514J2iic5iLZk+UIiS5yGE3pPYxIUKlzyoNj\nd6vfevYHTswbevhYpO46ZM4XP2kw1nCoXyphP80CgYEAxeQKSRRmRQS5ssQA2n/7\nHGgq+cu0pkl/eymz2NmpNTljsDCIfZrbO8WRf23xfJ9/edJl+GZUTceHecc4aPZs\nYIqHPZB46K6nnUp2JphiiH0VxnXZFiVauDmgWwOi5Bmaui5ICCgfEN7uS63a44KD\nZJD/Pj+Xp8aqLXeezqcBuVM=\n-----END PRIVATE KEY-----\n",
+  "client_email": "acc-191@rock-perigee-348712.iam.gserviceaccount.com",
+  "client_id": "109690853667624653034",
+  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+  "token_uri": "https://oauth2.googleapis.com/token",
+  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/acc-191%40rock-perigee-348712.iam.gserviceaccount.com"
+}

@@ -1,0 +1,35 @@
+Task exception was never retrieved
+future: <Task finished name='Task-94255' coro=<Client.handle_updates() done, defined at C:\Users\pavel\AppData\Local\Programs\Python\Python310-32\lib\site-packages\pyrogram\client.py:525> exception=ChannelInvalid('Telegram says: [400 CHANNEL_INVALID] - The channel parameter is invalid (caused by "channels.GetChannels")')>
+Traceback (most recent call last):
+  File "C:\Users\pavel\AppData\Local\Programs\Python\Python310-32\lib\site-packages\pyrogram\methods\advanced\resolve_peer.py", line 60, in resolve_peer
+    return await self.storage.get_peer_by_id(peer_id)
+  File "C:\Users\pavel\AppData\Local\Programs\Python\Python310-32\lib\site-packages\pyrogram\storage\sqlite_storage.py", line 147, in get_peer_by_id
+    raise KeyError(f"ID not found: {peer_id}")
+KeyError: 'ID not found: -1001717226742'
+
+Traceback (most recent call last):
+  File "C:\Users\pavel\AppData\Local\Programs\Python\Python310-32\lib\site-packages\pyrogram\client.py", line 554, in handle_updates
+    channel=await self.resolve_peer(utils.get_channel_id(channel_id)),
+  File "C:\Users\pavel\AppData\Local\Programs\Python\Python310-32\lib\site-packages\pyrogram\methods\advanced\resolve_peer.py", line 109, in resolve_peer
+    await self.send(
+  File "C:\Users\pavel\AppData\Local\Programs\Python\Python310-32\lib\site-packages\pyrogram\methods\advanced\send.py", line 77, in send
+    r = await self.session.send(
+  File "C:\Users\pavel\AppData\Local\Programs\Python\Python310-32\lib\site-packages\pyrogram\session\session.py", line 362, in send
+    return await self._send(data, timeout=timeout)
+  File "C:\Users\pavel\AppData\Local\Programs\Python\Python310-32\lib\site-packages\pyrogram\session\session.py", line 332, in _send
+    RPCError.raise_it(result, type(data))
+  File "C:\Users\pavel\AppData\Local\Programs\Python\Python310-32\lib\site-packages\pyrogram\errors\rpc_error.py", line 91, in raise_it
+    raise getattr(
+pyrogram.errors.exceptions.bad_request_400.ChannelInvalid: Telegram says: [400 CHANNEL_INVALID] - The channel parameter is invalid (caused by "channels.GetChannels")
+
+
+ERROR:asyncio:Task exception was never retrieved
+future: <Task finished name='Task-1717' coro=<Client.handle_updates() done, defined at C:\Users\pavel\AppData\Local\Programs\Python\Python310-32\lib\site-packages\pyrogram\client.py:525> exception=ProgrammingError('Cannot operate on a closed database.')>
+Traceback (most recent call last):
+  File "C:\Users\pavel\AppData\Local\Programs\Python\Python310-32\lib\site-packages\pyrogram\client.py", line 527, in handle_updates
+    is_min = (await self.fetch_peers(updates.users)) or (await self.fetch_peers(updates.chats))
+  File "C:\Users\pavel\AppData\Local\Programs\Python\Python310-32\lib\site-packages\pyrogram\client.py", line 493, in fetch_peers
+    await self.storage.update_peers(parsed_peers)
+  File "C:\Users\pavel\AppData\Local\Programs\Python\Python310-32\lib\site-packages\pyrogram\storage\sqlite_storage.py", line 134, in update_peers
+    self.conn.executemany(
+sqlite3.ProgrammingError: Cannot operate on a closed database.
